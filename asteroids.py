@@ -23,8 +23,11 @@ def create_ship() -> DesignerObject:
     return ship
 
 def move_ship(world: World):
+    # constantly move ship based on velocity
     world['ship']['x'] += world['xvel']
     world['ship']['y'] += world['yvel']
+    
+    # wrap around the window if hits the edges
     if world['ship']['x'] < 0:
         world['ship']['x'] = get_width()
     elif world['ship']['x'] > get_width():
@@ -36,6 +39,7 @@ def move_ship(world: World):
         world['ship']['y'] = 0
 
 def change_vel(world: World, key: str):
+    # CHANGE THESE TO HOLDING - maintain constant velocity as long as key is held
     if key == 'a':
         world['xvel'] = -3
     elif key == 'd':
@@ -49,7 +53,8 @@ def change_vel(world: World, key: str):
     elif key == 'right':
         world['ship']['angle'] += 10
         
-def decel(world: World): # natural deceleration of ship
+def decel(world: World):
+    # natural deceleration of ship when rockets are unpowered
     if world['xvel'] < 0:
         world['xvel'] += 0.1
     elif world['xvel'] > 0:
@@ -66,8 +71,13 @@ def create_asteroid() -> DesignerObject:
     return asteroid
 
 def make_asteroids(world: World):
+    # less than 10 asteroids? create an asteroid    
     not_too_many = len(world['asteroids']) < 10
+    
+    # 4% chance of asteroid creation per frame
     dice = randint(0, 25) == 1
+    
+    # less than too many asteroids and random chance met
     if not_too_many and dice:
         world['asteroids'].append(create_asteroid())
         index_created = len(world['asteroids']) - 1
@@ -77,6 +87,8 @@ def make_asteroids(world: World):
         rvel = 0
         size = 0
         
+        # set a random velocity property for this asteroid, making sure
+        # all movement velocities are non-zero
         while xvel == 0 and yvel == 0:
             xvel = randint(-5, 5)
             yvel = randint(-5, 5)
@@ -88,6 +100,7 @@ def make_asteroids(world: World):
         else:
             world['asteroids'][index_created]['x'] = 1 # going to right, spawn on left
         
+        # maintain velocity for this asteroid
         world['asteroids xvel'].append(xvel)
         world['asteroids yvel'].append(yvel)
         world['asteroids rvel'].append(rvel)
@@ -97,6 +110,7 @@ def move_asteroids(world: World):
     if len(world['asteroids']) == 0:
         return # nothing to move
     for i in range(len(world['asteroids'])):
+        # move each asteroid based on its assocaited velocity
         world['asteroids'][i]['x'] += world['asteroids xvel'][i]
         world['asteroids'][i]['y'] += world['asteroids yvel'][i]
         world['asteroids'][i]['angle'] += world['asteroids rvel'][i]
@@ -108,13 +122,15 @@ def destroy_out_of_bounds(world: World):
         try:
             if (world['asteroids'][i]['x'] < 0 or world['asteroids'][i]['x'] > get_width() or
                 world['asteroids'][i]['y'] < 0 or world['asteroids'][i]['y'] > get_height()):
-                
+                # remove the asteroid if it hits the screen edges
                 world['asteroids'].pop(i)
                 world['asteroids xvel'].pop(i)
                 world['asteroids yvel'].pop(i)
                 world['asteroids rvel'].pop(i)
                 world['asteroids size'].pop(i)
             elif colliding(world['asteroids'][i], world['ship']):
+                # remove the asteroid if it hits the ship; split it into chunks and also
+                # destroy the ship
                 world['asteroids'].pop(i)
                 world['asteroids xvel'].pop(i)
                 world['asteroids yvel'].pop(i)
@@ -122,11 +138,12 @@ def destroy_out_of_bounds(world: World):
                 world['asteroids size'].pop(i)
                 # then create extra pieces and also destroy ship
             else:
-                # check for every projectile, then create extra pieces
+                # remove the asteroid if it hits a projectile; split it into chunks and also
+                # destroy the projectile
+                # check for every projectile
                 pass
         except IndexError:
-            continue # went beyond end of list
-    
+            continue # finished iteration through the full list
         
 def create_world() -> World:
     return {
