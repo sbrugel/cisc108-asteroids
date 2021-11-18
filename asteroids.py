@@ -114,8 +114,18 @@ def destroy_out_of_bounds(world: World):
                 world['asteroids yvel'].pop(i)
                 world['asteroids rvel'].pop(i)
                 world['asteroids size'].pop(i)
+            elif colliding(world['asteroids'][i], world['ship']):
+                world['asteroids'].pop(i)
+                world['asteroids xvel'].pop(i)
+                world['asteroids yvel'].pop(i)
+                world['asteroids rvel'].pop(i)
+                world['asteroids size'].pop(i)
+                # then create extra pieces and also destroy ship
+            else:
+                # check for every projectile, then create extra pieces
+                pass
         except IndexError:
-            continue # probably went beyond list
+            continue # went beyond end of list
     
         
 def create_world() -> World:
