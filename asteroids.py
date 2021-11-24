@@ -1,7 +1,9 @@
 from designer import *
 from random import randint, uniform
+import math
 
 set_window_color('black')
+enable_keyboard_repeating()
 
 World = {
     'ship': DesignerObject,
@@ -39,19 +41,21 @@ def move_ship(world: World):
         world['ship']['y'] = 0
 
 def change_vel(world: World, key: str):
-    # CHANGE THESE TO HOLDING - maintain constant velocity as long as key is held
     if key == 'a':
         world['xvel'] = -3
-    elif key == 'd':
+    if key == 'd':
         world['xvel'] = 3
-    elif key == 'w':
+    if key == 'w':
         world['yvel'] = -3
-    elif key == 's':
+    if key == 's':
         world['yvel'] = 3
-    elif key == 'left':
-        world['ship']['angle'] -= 10
-    elif key == 'right':
-        world['ship']['angle'] += 10
+    if key == 'space':
+        make_projectile(world)
+        
+    if key == 'left':
+        world['ship']['angle'] -= 15
+    if key == 'right':
+        world['ship']['angle'] += 15
         
 def decel(world: World):
     # natural deceleration of ship when rockets are unpowered
@@ -67,7 +71,6 @@ def decel(world: World):
         
 def create_asteroid() -> DesignerObject:
     asteroid = image('asteroid.png')
-    asteroid['scale'] = 1
     return asteroid
 
 def make_asteroids(world: World):
@@ -115,33 +118,86 @@ def move_asteroids(world: World):
         world['asteroids'][i]['y'] += world['asteroids yvel'][i]
         world['asteroids'][i]['angle'] += world['asteroids rvel'][i]
         
+def create_projectile() -> DesignerObject:
+    proj = image('projectile.png')
+    return proj
+        
+def make_projectile(world: World):
+    # only fire one projectile at a time  
+    not_too_many = len(world['projectiles']) < 1
+    
+    # less than too many asteroids and random chance met
+    if not_too_many:
+        world['projectiles'].append(create_projectile())
+        index_created = len(world['projectiles']) - 1
+        
+        radianangle = math.radians(world['ship']['angle'])
+        
+        xvel = math.cos(radianangle) * 20
+        yvel = math.sin(radianangle) * -20 # negative since on designer, a positive y vel means it goes down
+        print('cos is', xvel)
+        print('sin is', yvel)
+        print('ang is', world['ship']['angle'])
+        print('----------------------------')
+        
+        world['projectiles'][index_created]['x'] = world['ship']['x']
+        world['projectiles'][index_created]['y'] = world['ship']['y']
+        world['projectiles'][index_created]['angle'] = world['ship']['angle']
+        
+        # maintain velocity for this asteroid
+        world['projectiles xvel'].append(xvel)
+        world['projectiles yvel'].append(yvel)
+        
+def move_projectiles(world: World):
+    if len(world['projectiles']) == 0:
+        return # nothing to move
+    for i in range(len(world['projectiles'])):
+        # move each asteroid based on its assocaited velocity
+        world['projectiles'][i]['x'] += world['projectiles xvel'][i]
+        world['projectiles'][i]['y'] += world['projectiles yvel'][i]
+        
 def destroy_out_of_bounds(world: World):
-    if len(world['asteroids']) == 0:
+    # handle asteroids
+    if not len(world['asteroids']) == 0:
+        for i in range(len(world['asteroids'])):
+            try:
+                if (world['asteroids'][i]['x'] < 0 or world['asteroids'][i]['x'] > get_width() or
+                    world['asteroids'][i]['y'] < 0 or world['asteroids'][i]['y'] > get_height()):
+                    # remove the asteroid if it hits the screen edges
+                    world['asteroids'].pop(i)
+                    world['asteroids xvel'].pop(i)
+                    world['asteroids yvel'].pop(i)
+                    world['asteroids rvel'].pop(i)
+                    world['asteroids size'].pop(i)
+                elif colliding(world['asteroids'][i], world['ship']):
+                    # remove the asteroid if it hits the ship; split it into chunks and also
+                    # destroy the ship
+                    world['asteroids'].pop(i)
+                    world['asteroids xvel'].pop(i)
+                    world['asteroids yvel'].pop(i)
+                    world['asteroids rvel'].pop(i)
+                    world['asteroids size'].pop(i)
+                    # then create extra pieces and also destroy ship
+                else:
+                    # remove the asteroid if it hits a projectile; split it into chunks and also
+                    # destroy the projectile
+                    # check for every projectile
+                    pass
+            except IndexError:
+                continue # finished iteration through the full list
+        
+    # handle projectiles
+    if len(world['projectiles']) == 0:
         return # nothing to remove
-    for i in range(len(world['asteroids'])):
+    for i in range(len(world['projectiles'])):
         try:
-            if (world['asteroids'][i]['x'] < 0 or world['asteroids'][i]['x'] > get_width() or
-                world['asteroids'][i]['y'] < 0 or world['asteroids'][i]['y'] > get_height()):
+            # only one case needed here, the other case (when hitting an asteroid) is handled above
+            if (world['projectiles'][i]['x'] < 0 or world['projectiles'][i]['x'] > get_width() or
+                world['projectiles'][i]['y'] < 0 or world['projectiles'][i]['y'] > get_height()):
                 # remove the asteroid if it hits the screen edges
-                world['asteroids'].pop(i)
-                world['asteroids xvel'].pop(i)
-                world['asteroids yvel'].pop(i)
-                world['asteroids rvel'].pop(i)
-                world['asteroids size'].pop(i)
-            elif colliding(world['asteroids'][i], world['ship']):
-                # remove the asteroid if it hits the ship; split it into chunks and also
-                # destroy the ship
-                world['asteroids'].pop(i)
-                world['asteroids xvel'].pop(i)
-                world['asteroids yvel'].pop(i)
-                world['asteroids rvel'].pop(i)
-                world['asteroids size'].pop(i)
-                # then create extra pieces and also destroy ship
-            else:
-                # remove the asteroid if it hits a projectile; split it into chunks and also
-                # destroy the projectile
-                # check for every projectile
-                pass
+                world['projectiles'].pop(i)
+                world['projectiles xvel'].pop(i)
+                world['projectiles yvel'].pop(i)
         except IndexError:
             continue # finished iteration through the full list
         
@@ -155,7 +211,10 @@ def create_world() -> World:
         'asteroids xvel': [],
         'asteroids yvel': [],
         'asteroids rvel': [],
-        'asteroids size': []
+        'asteroids size': [],
+        'projectiles': [],
+        'projectiles xvel': [],
+        'projectiles yvel': [],
     }
 
 when('starting', create_world)
@@ -164,5 +223,6 @@ when('typing', change_vel)
 when('updating', decel)
 when('updating', make_asteroids)
 when('updating', move_asteroids)
+when('updating', move_projectiles)
 when('updating', destroy_out_of_bounds)
 start()
