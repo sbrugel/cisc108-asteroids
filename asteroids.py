@@ -17,8 +17,6 @@ World = {
     'asteroids size': [int]
 }
 
-MAX_VELOCITY: 3
-
 def create_ship() -> DesignerObject:
     ship = image('ship.png')
     ship['scale'] = .75
@@ -49,6 +47,7 @@ def change_vel(world: World, key: str):
         world['yvel'] = -3
     if key == 's':
         world['yvel'] = 3
+        
     if key == 'space':
         make_projectile(world)
         
@@ -83,6 +82,9 @@ def make_asteroids(world: World):
     # less than too many asteroids and random chance met
     if not_too_many and dice:
         world['asteroids'].append(create_asteroid())
+        
+        # this line is used to find the newly created asteroid
+        # to add a velocity to
         index_created = len(world['asteroids']) - 1
         
         xvel = 0
@@ -96,14 +98,14 @@ def make_asteroids(world: World):
             xvel = randint(-5, 5)
             yvel = randint(-5, 5)
             rvel = uniform(-5.0, 5.0)
-            size = randint(1, 4)
+            size = randint(1, 4) # random from 1 to 3 (small/med/large)
         
         if xvel < 0:
             world['asteroids'][index_created]['x'] = get_width() - 1 # going to left, spawn on right
         else:
             world['asteroids'][index_created]['x'] = 1 # going to right, spawn on left
         
-        # maintain velocity for this asteroid
+        # maintain properties for this asteroid
         world['asteroids xvel'].append(xvel)
         world['asteroids yvel'].append(yvel)
         world['asteroids rvel'].append(rvel)
@@ -123,22 +125,17 @@ def create_projectile() -> DesignerObject:
     return proj
         
 def make_projectile(world: World):
-    # only fire one projectile at a time  
+    # only fire one projectile at a time (for now)
     not_too_many = len(world['projectiles']) < 1
     
-    # less than too many asteroids and random chance met
+    # less than too many projectiles
     if not_too_many:
         world['projectiles'].append(create_projectile())
         index_created = len(world['projectiles']) - 1
         
         radianangle = math.radians(world['ship']['angle'])
-        
         xvel = math.cos(radianangle) * 20
         yvel = math.sin(radianangle) * -20 # negative since on designer, a positive y vel means it goes down
-        print('cos is', xvel)
-        print('sin is', yvel)
-        print('ang is', world['ship']['angle'])
-        print('----------------------------')
         
         world['projectiles'][index_created]['x'] = world['ship']['x']
         world['projectiles'][index_created]['y'] = world['ship']['y']
