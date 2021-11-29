@@ -43,13 +43,13 @@ def move_ship(world: World):
 
 def change_vel(world: World, key: str):
     if key == 'a':
-        world['xvel'] = -3
+        world['xvel'] = -5
     if key == 'd':
-        world['xvel'] = 3
+        world['xvel'] = 5
     if key == 'w':
-        world['yvel'] = -3
+        world['yvel'] = -5
     if key == 's':
-        world['yvel'] = 3
+        world['yvel'] = 5
         
     if key == 'space':
         make_projectile(world)
@@ -80,7 +80,7 @@ def make_asteroids(world: World):
     not_too_many = len(world['asteroids']) < 10
     
     # 4% chance of asteroid creation per frame
-    dice = randint(0, 25) == 1
+    dice = randint(0, 50) == 1
     
     # less than too many asteroids and random chance met
     if not_too_many and dice:
