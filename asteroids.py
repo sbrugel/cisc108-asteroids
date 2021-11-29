@@ -2,6 +2,19 @@ from designer import *
 from random import randint, uniform
 import math
 
+# TO DO LIST
+# Check if projectiles hit by asteroids, clear both
+# Get score on screen
+# Game over when ship is destroyed
+
+# BONUS STUFF
+# Particles upon destruction of an object (handle with separate function)
+# SFX
+# Powerups
+# ---Shield
+# ---Triple fire
+
+
 set_window_color('black')
 enable_keyboard_repeating()
 
@@ -126,11 +139,11 @@ def make_asteroids(world: World):
             world['asteroids'][index_created]['x'] = 1 # going to right, spawn on left
         
         if size == 1:
-            world['asteroids'][index_created]['scale'] = 0.3
+            world['asteroids'][index_created]['scale'] = 0.2
         elif size == 2:
             world['asteroids'][index_created]['scale'] = 0.5
         elif size == 3:
-            world['asteroids'][index_created]['scale'] = 0.7
+            world['asteroids'][index_created]['scale'] = 0.8
         # maintain properties for this asteroid until destroyed
         world['asteroids xvel'].append(xvel)
         world['asteroids yvel'].append(yvel)
@@ -234,11 +247,11 @@ def destroy_if_hit(world: World):
                 if (world['asteroids'][i]['x'] < 0 or world['asteroids'][i]['x'] > get_width() or
                     world['asteroids'][i]['y'] < 0 or world['asteroids'][i]['y'] > get_height()):
                     # remove the asteroid if it hits the screen edges
-                    remove_asteroid_at_index(i, world)
+                    remove_asteroid_at_index(i, False, world)
                 elif colliding(world['asteroids'][i], world['ship']):
                     # remove the asteroid if it hits the ship, also destroy ship and game over
                     world['ship']['scale'] = 0
-                    remove_asteroid_at_index(i, world)
+                    remove_asteroid_at_index(i, True, world)
                 else:
                     # remove the asteroid if it hits a projectile; split it into chunks and also
                     # destroy the projectile
@@ -274,12 +287,53 @@ def destroy_if_hit(world: World):
         except IndexError:
             continue # finished iteration through the full list
         
-def remove_asteroid_at_index(index: int, world: World):
+def remove_asteroid_at_index(index: int, split: bool, world: World):
     # remove the asteroid at the specified array index
     # used in tandem with the destroy_if_hit function
     # which iterates through the full list of asteroids
     # and removes every index that is colliding with the edge,
     # a projectile, or the ship
+    
+    # a boolean toggle also determines if the asteroid should split
+    # if true, larger asteroids split into two smaller asteroids
+    # this is used when the asteroid is hit by the ship or a projectile
+    
+    # additionally if the asteroid's size is >1, create two
+    # additional asteroids, one size smaller
+    if world['asteroids size'][index] > 1:
+        for i in range(2):
+            world['asteroids'].append(create_asteroid())
+            
+            # this line is used to find the newly created asteroid
+            # to add a velocity to
+            index_created = len(world['asteroids']) - 1
+            
+            xvel = 0
+            yvel = 0
+            
+            while xvel == 0 and yvel == 0:
+                xvel = randint(-3, 3)
+                yvel = randint(-3, 3)
+            
+            rvel = world['asteroids rvel'][index]
+            size = world['asteroids size'][index] - 1
+            
+            world['asteroids'][index_created]['x'] = world['asteroids'][index]['x'] # going to left, spawn on right
+            world['asteroids'][index_created]['y'] = world['asteroids'][index]['y'] # going to left, spawn on right
+
+            if size == 1:
+                world['asteroids'][index_created]['scale'] = 0.3
+            elif size == 2:
+                world['asteroids'][index_created]['scale'] = 0.5
+            elif size == 3:
+                world['asteroids'][index_created]['scale'] = 0.7
+            # maintain properties for this asteroid until destroyed
+            world['asteroids xvel'].append(xvel)
+            world['asteroids yvel'].append(yvel)
+            world['asteroids rvel'].append(rvel)
+            world['asteroids size'].append(size)
+    
+    # destroy the asteroid
     world['asteroids'].pop(index)
     world['asteroids xvel'].pop(index)
     world['asteroids yvel'].pop(index)
