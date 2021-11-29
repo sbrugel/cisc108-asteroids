@@ -14,7 +14,10 @@ World = {
     'asteroids xvel': [float],
     'asteroids yvel': [float],
     'asteroids rvel': [float],
-    'asteroids size': [int]
+    'asteroids size': [int],
+    'projectiles': [DesignerObject],
+    'projectiles xvel': [float],
+    'projectiles yvel': [float],
 }
 
 def create_ship() -> DesignerObject:
