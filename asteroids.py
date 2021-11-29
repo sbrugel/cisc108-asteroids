@@ -18,6 +18,9 @@ World = {
     'projectiles': [DesignerObject],
     'projectiles xvel': [float],
     'projectiles yvel': [float],
+    'particles': [DesignerObject],
+    'particles xvel': [float],
+    'particles yvel': [float],
 }
 
 def create_ship() -> DesignerObject:
@@ -43,33 +46,33 @@ def move_ship(world: World):
 
 def change_vel(world: World, key: str):
     if key == 'a':
-        world['xvel'] = -5
+        world['xvel'] = -3
     if key == 'd':
-        world['xvel'] = 5
+        world['xvel'] = 3
     if key == 'w':
-        world['yvel'] = -5
+        world['yvel'] = -3
     if key == 's':
-        world['yvel'] = 5
+        world['yvel'] = 3
         
     if key == 'space':
         make_projectile(world)
         
     if key == 'left':
-        world['ship']['angle'] -= 15
+        world['ship']['angle'] -= 10
     if key == 'right':
-        world['ship']['angle'] += 15
+        world['ship']['angle'] += 10
         
 def decel(world: World):
     # natural deceleration of ship when rockets are unpowered
     if world['xvel'] < 0:
-        world['xvel'] += 0.1
+        world['xvel'] += 0.05
     elif world['xvel'] > 0:
-        world['xvel'] -= 0.1
+        world['xvel'] -= 0.05
         
     if world['yvel'] < 0:
-        world['yvel'] += 0.1
+        world['yvel'] += 0.05
     elif world['yvel'] > 0:
-        world['yvel'] -= 0.1
+        world['yvel'] -= 0.05
         
 def create_asteroid() -> DesignerObject:
     asteroid = image('asteroid.png')
@@ -79,7 +82,7 @@ def make_asteroids(world: World):
     # less than 10 asteroids? create an asteroid    
     not_too_many = len(world['asteroids']) < 10
     
-    # 4% chance of asteroid creation per frame
+    # 2% chance of asteroid creation per frame (updated 30 times per second)
     dice = randint(0, 50) == 1
     
     # less than too many asteroids and random chance met
@@ -98,9 +101,9 @@ def make_asteroids(world: World):
         # set a random velocity property for this asteroid, making sure
         # all movement velocities are non-zero
         while xvel == 0 and yvel == 0:
-            xvel = randint(-5, 5)
-            yvel = randint(-5, 5)
-            rvel = uniform(-5.0, 5.0)
+            xvel = randint(-3, 3)
+            yvel = randint(-3, 3)
+            rvel = uniform(-1.0, 1.0)
             size = randint(1, 4) # random from 1 to 3 (small/med/large)
         
         if xvel < 0:
@@ -108,6 +111,12 @@ def make_asteroids(world: World):
         else:
             world['asteroids'][index_created]['x'] = 1 # going to right, spawn on left
         
+        if size == 1:
+            world['asteroids'][index_created]['scale'] = 0.3
+        elif size == 2:
+            world['asteroids'][index_created]['scale'] = 0.5
+        elif size == 3:
+            world['asteroids'][index_created]['scale'] = 0.7
         # maintain properties for this asteroid
         world['asteroids xvel'].append(xvel)
         world['asteroids yvel'].append(yvel)
@@ -171,7 +180,7 @@ def destroy_out_of_bounds(world: World):
                     world['asteroids size'].pop(i)
                 elif colliding(world['asteroids'][i], world['ship']):
                     # remove the asteroid if it hits the ship; split it into chunks and also
-                    # destroy the ship
+                    world['ship']['scale'] = 0
                     world['asteroids'].pop(i)
                     world['asteroids xvel'].pop(i)
                     world['asteroids yvel'].pop(i)
