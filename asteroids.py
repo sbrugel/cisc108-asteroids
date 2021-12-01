@@ -2,11 +2,7 @@ from designer import *
 from random import randint, uniform
 import math
 
-# TO DO LIST
-# Game over when ship is destroyed
-
 # BONUS STUFF
-# Particles upon destruction of an object (handle with separate function)
 # SFX
 # Powerups
 # ---Shield
@@ -38,6 +34,8 @@ World = {
     'particles': [DesignerObject],
     'particles xvel': [float],
     'particles yvel': [float],
+    'particles lifetime': [int],
+    'over': bool
 }
 
 MAX_VEL = 3
@@ -67,7 +65,7 @@ def move_ship(world: World):
         world['ship']['y'] = 0
 
 def change_vel(world: World, key: str):
-    # movement to sides - maximum velocity at a time per direction is 3 units/frame
+    # movement to sides - maximum velocity at a time per direction is MAX_VEL units/frame
     if key == 'a':
         world['xvel'] = -MAX_VEL
     if key == 'd':
@@ -77,9 +75,10 @@ def change_vel(world: World, key: str):
     if key == 's':
         world['yvel'] = MAX_VEL
         
-    # launch projectile
+    # launch projectile (if game is not over)
     if key == 'space':
-        make_projectile(world)
+        if not world['over']:
+            make_projectile(world)
         
     # change angle of ship using arrows
     if key == 'left':
@@ -88,7 +87,8 @@ def change_vel(world: World, key: str):
         world['ship']['angle'] += ROTATE_RATE
         
 def decel(world: World):
-    # natural deceleration of ship when rockets are unpowered
+    # natural deceleration of ship when rockets are unpowered (ship slows to a stop, does not immediately
+    # stop when player lifts up from key)
     if world['xvel'] < 0:
         world['xvel'] += DECEL_RATE
     elif world['xvel'] > 0:
@@ -163,11 +163,11 @@ def create_bonus() -> DesignerObject:
     return bonus
 
 def make_bonus(world: World):
-    # less than 10 asteroids? create an asteroid    
+    # only 1 bonus at a time
     not_too_many = len(world['bonus']) < 1
     
-    # 0.5% chance of coin creation per frame (updated 30 times per second)
-    dice = randint(0, 200) == 1
+    # 2% chance of coin creation per frame (updated 30 times per second)
+    dice = randint(0, 50) == 1
     
     # no bonus already exists and random chance met
     if not_too_many and dice:
@@ -199,7 +199,7 @@ def move_bonus(world: World):
     if len(world['bonus']) == 0:
         return # nothing to move
     for i in range(len(world['bonus'])):
-        # move each asteroid based on its assocaited velocity
+        # move each bonus based on its assocaited velocity
         world['bonus'][i]['x'] += world['bonus xvel'][i]
         world['bonus'][i]['y'] += world['bonus yvel'][i]
         world['bonus'][i]['angle'] += world['bonus rvel'][i]
@@ -212,7 +212,7 @@ def make_projectile(world: World):
     # only fire one projectile at a time (for now)
     not_too_many = len(world['projectiles']) < 1
     
-    # less than too many projectiles
+    # fire, if no projectiles are present
     if not_too_many:
         world['projectiles'].append(create_projectile())
         index_created = len(world['projectiles']) - 1
@@ -226,7 +226,7 @@ def make_projectile(world: World):
         world['projectiles'][index_created]['y'] = world['ship']['y']
         world['projectiles'][index_created]['angle'] = world['ship']['angle']
         
-        # maintain velocity for this projectile
+        # maintain velocity for this projectile until destroyed
         world['projectiles xvel'].append(xvel)
         world['projectiles yvel'].append(yvel)
         
@@ -234,7 +234,7 @@ def move_projectiles(world: World):
     if len(world['projectiles']) == 0:
         return # nothing to move
     for i in range(len(world['projectiles'])):
-        # move each asteroid based on its assocaited velocity
+        # move each projectile based on its assocaited velocity
         world['projectiles'][i]['x'] += world['projectiles xvel'][i]
         world['projectiles'][i]['y'] += world['projectiles yvel'][i]
         
@@ -248,20 +248,20 @@ def destroy_if_hit(world: World):
                     # remove the asteroid if it hits the screen edges
                     remove_asteroid_at_index(i, False, world)
                 elif colliding(world['asteroids'][i], world['ship']):
-                    # remove the asteroid if it hits the ship, also destroy ship and game over
+                    # remove the asteroid if it hits the ship, split it into chunks, also destroy ship and game over
                     world['ship']['scale'] = 0
                     remove_asteroid_at_index(i, True, world)
+                    world['over'] = True
                 else:
+                    # remove the asteroid if it hits a projectile; split it into chunks and also
+                    # destroy the projectile
+                    # check for every projectile, see if it is colliding with any asteroid
                     for j in range(len(world['projectiles'])):
                         if colliding(world['asteroids'][i], world['projectiles'][j]):
                             remove_asteroid_at_index(i, True, world)
                             world['projectiles'].pop(j)
                             world['projectiles xvel'].pop(j)
                             world['projectiles yvel'].pop(j)
-                    # remove the asteroid if it hits a projectile; split it into chunks and also
-                    # destroy the projectile
-                    # check for every projectile
-                    pass
             except IndexError:
                 continue # finished iteration through the full list
         
@@ -300,13 +300,14 @@ def remove_asteroid_at_index(index: int, split: bool, world: World):
     # a projectile, or the ship
     
     # a boolean toggle also determines if the asteroid should split
-    # if true, larger asteroids split into two smaller asteroids
+    # if true, larger asteroids split into two smaller asteroids and also
+    # summon particles upon destroying.
     # this is used when the asteroid is hit by the ship or a projectile
     
-    # additionally if the asteroid's size is >1, create two
+    # if the asteroid's size is >1, create two
     # additional asteroids, one size smaller
     if world['asteroids size'][index] > 1 and split:
-        for i in range(2):
+        for i in range(2): # create two
             world['asteroids'].append(create_asteroid())
             
             # this line is used to find the newly created asteroid
@@ -323,8 +324,8 @@ def remove_asteroid_at_index(index: int, split: bool, world: World):
             rvel = world['asteroids rvel'][index]
             size = world['asteroids size'][index] - 1
             
-            world['asteroids'][index_created]['x'] = world['asteroids'][index]['x'] # going to left, spawn on right
-            world['asteroids'][index_created]['y'] = world['asteroids'][index]['y'] # going to left, spawn on right
+            world['asteroids'][index_created]['x'] = world['asteroids'][index]['x'] # spawn at x and y pos of destroyed asteroid
+            world['asteroids'][index_created]['y'] = world['asteroids'][index]['y']
 
             if size == 1:
                 world['asteroids'][index_created]['scale'] = 0.3
@@ -337,16 +338,65 @@ def remove_asteroid_at_index(index: int, split: bool, world: World):
             world['asteroids yvel'].append(yvel)
             world['asteroids rvel'].append(rvel)
             world['asteroids size'].append(size)
-    
+            
+    if split: # only add to score if player hits the asteroids
+        world['score'] += 100
+        
+        # create particles upon destruction if destroyed by not hitting edge
+        # number generated increases based on size
+        for i in range(world['asteroids size'][index]*12):
+            make_particles(world, world['asteroids'][index]['x'], world['asteroids'][index]['y'])
+            
     # destroy the asteroid
     world['asteroids'].pop(index)
     world['asteroids xvel'].pop(index)
     world['asteroids yvel'].pop(index)
     world['asteroids rvel'].pop(index)
     world['asteroids size'].pop(index)
+        
+def create_particle() -> DesignerObject:
+    # create particles for eye candy when an asteroid is destroyed
+    part = image('particle.png')
+    return part
+
+def make_particles(world: World, xloc: float, yloc: float):
+    world['particles'].append(create_particle())
     
-    if split: # only add to score if player hits the asteroids
-        world['score'] += 100
+    index_created = len(world['particles']) - 1
+        
+    # set direction of particle randomly
+    radianangle = math.radians(randint(0, 360))
+    xvel = math.cos(radianangle) * 3
+    yvel = math.sin(radianangle) * -3 # negative since on designer, a positive y vel means it goes down
+    
+    # originate particle at specified x/y location
+    world['particles'][index_created]['x'] = xloc
+    world['particles'][index_created]['y'] = yloc
+    world['particles'][index_created]['scale'] = 2
+    
+    # maintain velocity for this particle until lifetime expires
+    world['particles xvel'].append(xvel)
+    world['particles yvel'].append(yvel)
+    world['particles lifetime'].append(100) # number of ticks before particle destroyed
+    
+def move_particles(world: World):
+    if len(world['particles']) == 0:
+        return # nothing to move
+    for i in range(len(world['particles'])):
+        try:
+            # move each particle based on its assocaited velocity
+            world['particles'][i]['x'] += world['particles xvel'][i]
+            world['particles'][i]['y'] += world['particles yvel'][i]
+            world['particles lifetime'][i] -= 1
+            if world['particles lifetime'][i] < 0:
+                # destroy particles that are on the screen for too long
+                world['particles'].pop(i)
+                world['particles xvel'].pop(i)
+                world['particles yvel'].pop(i)
+                world['particles lifetime'].pop(i)
+        except IndexError:
+            continue # reached end of list
+        
     
 def remove_projectile_at_index(index: int, world: World):
     # remove the projectile at the specified array index
@@ -371,12 +421,18 @@ def remove_bonus_at_index(index: int, world: World):
     
 def update_score(world: World):
     world['score display']['text'] = 'Score: ' + str(world['score'])
+    
+def game_is_over(world: World):
+    return world['over']
+
+def flash_game_over(world):
+    world['score display']['text'] = "GAME OVER! Score was " + str(world['score'])
         
 def create_world() -> World:
     return {
         'ship': create_ship(),
         'score': 0,
-        'score display': text('white', 'z', 40, 100, 25),
+        'score display': text('white', 'z', 40, get_width() / 2, 25), # center of screen on the top
         'xvel': 0,
         'yvel': 0,
         'rot': 0,
@@ -392,6 +448,11 @@ def create_world() -> World:
         'bonus xvel': [],
         'bonus yvel': [],
         'bonus rvel': [],
+        'particles': [],
+        'particles xvel': [],
+        'particles yvel': [],
+        'particles lifetime': [],
+        'over': False
     }
 
 when('starting', create_world)
@@ -404,5 +465,7 @@ when('updating', make_bonus)
 when('updating', move_bonus)
 when('updating', move_projectiles)
 when('updating', update_score)
+when('updating', move_particles)
 when('updating', destroy_if_hit)
+when(game_is_over, flash_game_over)
 start()
