@@ -2,13 +2,6 @@ from designer import *
 from random import randint, uniform
 import math
 
-# BONUS STUFF
-# SFX
-# Powerups
-# ---Shield
-# ---Triple fire
-
-
 set_window_color('black')
 enable_keyboard_repeating()
 
