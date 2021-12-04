@@ -80,7 +80,8 @@ def change_vel(world: World, key: str):
         world['ship']['angle'] += ROTATE_RATE
         
 def decel(world: World):
-    # natural deceleration of ship when rockets are unpowered (ship slows to a stop, does not immediately
+    # natural deceleration of ship when rockets are unpowered
+    # (ship slows to a stop, does not immediately
     # stop when player lifts up from key)
     if world['xvel'] < 0:
         world['xvel'] += DECEL_RATE
@@ -126,9 +127,11 @@ def make_asteroids(world: World):
             size = randint(1, 4)
         
         if xvel < 0:
-            world['asteroids'][index_created]['x'] = get_width() - 1 # going to left, spawn on right
+            world['asteroids'][index_created]['x'] = get_width() - 1
+            # going to left, spawn on right
         else:
-            world['asteroids'][index_created]['x'] = 1 # going to right, spawn on left
+            world['asteroids'][index_created]['x'] = 1
+            # going to right, spawn on left
         
         if size == 1:
             world['asteroids'][index_created]['scale'] = 0.2
@@ -213,7 +216,8 @@ def make_projectile(world: World):
         # set direction of projectile based on ship direction
         radianangle = math.radians(world['ship']['angle'])
         xvel = math.cos(radianangle) * 20
-        yvel = math.sin(radianangle) * -20 # negative since on designer, a positive y vel means it goes down
+        yvel = math.sin(radianangle) * -20  # negative since on designer,
+                                            # a positive y vel means it goes down
         
         world['projectiles'][index_created]['x'] = world['ship']['x']
         world['projectiles'][index_created]['y'] = world['ship']['y']
@@ -241,7 +245,8 @@ def destroy_if_hit(world: World):
                     # remove the asteroid if it hits the screen edges
                     remove_asteroid_at_index(i, False, world)
                 elif colliding(world['asteroids'][i], world['ship']):
-                    # remove the asteroid if it hits the ship, split it into chunks, also destroy ship and game over
+                    # remove the asteroid if it hits the ship, split it into chunks,
+                    # also destroy ship and game over
                     world['ship']['scale'] = 0
                     remove_asteroid_at_index(i, True, world)
                     world['over'] = True
@@ -262,7 +267,9 @@ def destroy_if_hit(world: World):
     if not len(world['projectiles']) == 0:
         for i in range(len(world['projectiles'])):
             try:
-                # only one case needed here, the other case (when hitting an asteroid) is handled above
+                # only one case needed here,
+                # the other case (when hitting an asteroid)
+                # is handled above
                 if (world['projectiles'][i]['x'] < 0 or world['projectiles'][i]['x'] > get_width() or
                     world['projectiles'][i]['y'] < 0 or world['projectiles'][i]['y'] > get_height()):
                     # remove the projectile if it hits the screen edges
@@ -317,7 +324,8 @@ def remove_asteroid_at_index(index: int, split: bool, world: World):
             rvel = world['asteroids rvel'][index]
             size = world['asteroids size'][index] - 1
             
-            world['asteroids'][index_created]['x'] = world['asteroids'][index]['x'] # spawn at x and y pos of destroyed asteroid
+            # spawn at x and y pos of destroyed asteroid
+            world['asteroids'][index_created]['x'] = world['asteroids'][index]['x']
             world['asteroids'][index_created]['y'] = world['asteroids'][index]['y']
 
             if size == 1:
@@ -360,7 +368,8 @@ def make_particles(world: World, xloc: float, yloc: float):
     # set direction of particle randomly
     radianangle = math.radians(randint(0, 360))
     xvel = math.cos(radianangle) * 3
-    yvel = math.sin(radianangle) * -3 # negative since on designer, a positive y vel means it goes down
+    yvel = math.sin(radianangle) * -3   # negative since on designer,
+                                        # a positive y vel means it goes down
     
     # originate particle at specified x/y location
     world['particles'][index_created]['x'] = xloc
